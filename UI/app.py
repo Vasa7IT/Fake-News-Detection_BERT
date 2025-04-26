@@ -1,50 +1,47 @@
 import streamlit as st
 import torch
-import numpy as np
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-import torch.nn.functional as F
 import requests
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoProcessor
+import pytesseract
+from PIL import Image
 from keybert import KeyBERT
 import os
 from dotenv import load_dotenv
-from PIL import Image
-import pytesseract
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from huggingface_hub import login
 
+# Load .env variables
 load_dotenv()
 
-hf_token = st.secrets.get("HF_TOKEN") or os.getenv("HF_TOKEN")
+# Use only environment variables, not st.secrets
+hf_token = os.getenv("HF_TOKEN")
+api_key = os.getenv("NEWS_API_KEY")
+
+# Authenticate with Hugging Face
 if hf_token:
     login(token=hf_token)
 else:
     st.warning("Hugging Face token not found. Model loading may fail.")
 
-MODEL_PATH = "Balavasan/Fine_tuned-BERT"
+# ------------------------------
+# Initialize processor and model
+MODEL_PATH = "microsoft/layoutlm-base-uncased"
+FAKE_NEWS_MODEL_PATH = "Balavasan/Fine_tuned-BERT"
 
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, use_auth_token=True)
-model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH, use_auth_token=True)
-# ------------------------
-# local model path
-# MODEL_PATH = r"E:\Productivity\git-Proj\main-proj\BERT-Fake_News_Detection\new-model-train"
+processor = AutoProcessor.from_pretrained(MODEL_PATH)
+ocr_model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH)
+tokenizer = AutoTokenizer.from_pretrained(FAKE_NEWS_MODEL_PATH)
+model = AutoModelForSequenceClassification.from_pretrained(FAKE_NEWS_MODEL_PATH)
 
-# Load tokenizer and model from local path
-# tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, local_files_only=True)
-# model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH, local_files_only=True)
-
-
-# ------------------------
-# App Title
+# ------------------------------
+# App UI
 st.title("📰 Fake News Detector with Source Suggestion")
 st.markdown("---")
 
-# ------------------------
-# Initialize session state
 if "news_input" not in st.session_state:
     st.session_state.news_input = ""
 
-# ------------------------
-# Image upload and OCR extraction
+# ------------------------------
+# Image upload and OCR
 uploaded_file = st.file_uploader("Or upload an image with news content", type=["png", "jpg", "jpeg"])
 if uploaded_file is not None and st.button("Extract Text from Image"):
     try:
@@ -55,24 +52,12 @@ if uploaded_file is not None and st.button("Extract Text from Image"):
         st.info(extracted_text)
     except Exception as e:
         st.error(f"❌ OCR failed: {e}")
-
-# ------------------------
-# Text input box
+# ------------------------------
+# Text input
 user_input = st.text_area("Enter news text:", key="news_input", value=st.session_state.news_input)
 
-# ------------------------
-# Load environment variables from .env file
-load_dotenv()
-try:
-    API_KEY = st.secrets["NEWS_API_KEY"]
-except Exception:
-    API_KEY = os.getenv("NEWS_API_KEY")
-
-if not API_KEY:
-    st.error("🚨 API key not found! Please set it in .env or secrets.toml")
-
-# ------------------------
-# KeyBERT for keyword extraction
+# ------------------------------
+# Keyword extractor
 kw_model = KeyBERT()
 
 def get_clean_query(text):
@@ -92,12 +77,16 @@ def search_news_api(query, api_key):
         st.error(f"Request failed: {e}")
         return []
 
-# ------------------------
-# Analyze button logic
+# ------------------------------
+# Analyze button
 if st.button("Analyze"):
     input_text = user_input.strip()
 
-    if input_text:
+    if not input_text:
+        st.warning("Please enter some news content or upload an image first.")
+    elif not api_key:
+        st.error("🚨 API key not found. Please check your .env file.")
+    else:
         # ---- Prediction ----
         inputs = tokenizer(
             input_text,
@@ -108,7 +97,7 @@ if st.button("Analyze"):
         )
         with torch.no_grad():
             logits = model(**inputs).logits
-        probs = F.softmax(logits, dim=1).squeeze().numpy()
+        probs = torch.nn.functional.softmax(logits, dim=1).squeeze().numpy()
 
         st.session_state.fake_prob = float(probs[0])
         st.session_state.real_prob = float(probs[1])
@@ -121,23 +110,20 @@ if st.button("Analyze"):
         else:
             st.session_state.result = "🤔 Uncertain"
 
-        # ---- Display prediction ----
         st.write(f"**Fake News Probability:** {st.session_state.fake_prob * 100:.2f}%")
         st.write(f"**Real News Probability:** {st.session_state.real_prob * 100:.2f}%")
         st.subheader(f"Prediction: {st.session_state.result}")
 
-        # ---- Suggest similar sources ----
+        # ---- Suggest Sources ----
         st.markdown("---")
         st.subheader("🔗 Possible News Source")
 
         query = get_clean_query(input_text)
         st.write(f"Searching sources for: `{query}`")
-        articles = search_news_api(query, API_KEY)
+        articles = search_news_api(query, api_key)
 
         if articles:
             for art in articles:
                 st.markdown(f"🔗 [{art['title']}]({art['url']})")
         else:
             st.info("No similar sources found.")
-    else:
-        st.warning("Please enter some news content or upload an image first.")
