@@ -16,7 +16,7 @@ import pytesseract
 
 # Load tokenizer and model from local path
 # tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, local_files_only=True)
-# model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH, local_files_only=True)
+# model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH, local_filses_only=True)
 
 # HUgging face model path
 MODEL_PATH = "Balavasan/Fine_tuned-BERT"
