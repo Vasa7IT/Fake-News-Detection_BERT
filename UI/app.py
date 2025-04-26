@@ -12,7 +12,15 @@ import pytesseract
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from huggingface_hub import login
 
-login(token=os.getenv("HF_TOKEN"))
+load_dotenv()
+
+from streamlit.runtime.secrets import get as get_secret
+
+hf_token = st.secrets.get("HF_TOKEN") or os.getenv("HF_TOKEN")
+if hf_token:
+    login(token=hf_token)
+else:
+    st.warning("Hugging Face token not found. Model loading may fail.")
 
 MODEL_PATH = "Balavasan/Fine_tuned-BERT"
 
