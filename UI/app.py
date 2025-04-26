@@ -41,17 +41,30 @@ if "news_input" not in st.session_state:
     st.session_state.news_input = ""
 
 # ------------------------------
+# Detect if running on Streamlit Cloud (i.e., production environment)
+is_cloud_env = "STREAMLIT_CLOUD" in os.environ
+
+# ------------------------------
 # Image upload and OCR
 uploaded_file = st.file_uploader("Or upload an image with news content", type=["png", "jpg", "jpeg"])
 if uploaded_file is not None and st.button("Extract Text from Image"):
     try:
         image = Image.open(uploaded_file)
-        extracted_text = pytesseract.image_to_string(image)
+        
+        # Use OCR based on environment
+        if is_cloud_env:
+            # Use Microsoft OCR Model (in cloud)
+            extracted_text = processor(image)  # Adjust if needed for the model
+        else:
+            # Use Tesseract OCR (in local environment)
+            extracted_text = pytesseract.image_to_string(image)
+        
         st.session_state.news_input = extracted_text
         st.write("Extracted text from image:")
         st.info(extracted_text)
     except Exception as e:
         st.error(f"❌ OCR failed: {e}")
+
 # ------------------------------
 # Text input
 user_input = st.text_area("Enter news text:", key="news_input", value=st.session_state.news_input)
