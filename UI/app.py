@@ -9,7 +9,15 @@ import os
 from dotenv import load_dotenv
 from PIL import Image
 import pytesseract
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from huggingface_hub import login
 
+login(token=os.getenv("HF_TOKEN"))
+
+MODEL_PATH = "Balavasan/Fine_tuned-BERT"
+
+tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, use_auth_token=True)
+model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH, use_auth_token=True)
 # ------------------------
 # local model path
 # MODEL_PATH = r"E:\Productivity\git-Proj\main-proj\BERT-Fake_News_Detection\new-model-train"
@@ -18,10 +26,6 @@ import pytesseract
 # tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, local_files_only=True)
 # model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH, local_files_only=True)
 
-# HUgging face model path
-MODEL_PATH = "Balavasan/Fine_tuned-BERT"
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
-model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH)
 
 # ------------------------
 # App Title

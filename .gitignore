@@ -1,8 +1,7 @@
 BERT_env/
 dataset/
-Trained_Model/
-Distill_BERT code.ipynb
-Old_Traing code.ipynb
+Training_code/
+new-model-train/
 Example Sen.docx
 UI/myenv
 .env
