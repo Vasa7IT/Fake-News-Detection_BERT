@@ -53,10 +53,10 @@ if uploaded_file is not None and st.button("Extract Text from Image"):
         
         # Use OCR based on environment
         if is_cloud_env:
-            # Use Microsoft OCR Model (in cloud)
-            extracted_text = processor(image)  # Adjust if needed for the model
+            # Use Microsoft's LayoutLM OCR Model (for cloud)
+            extracted_text = processor(image)  # Adjust to use correct OCR model
         else:
-            # Use Tesseract OCR (in local environment)
+            # Use Tesseract OCR (for local environment)
             extracted_text = pytesseract.image_to_string(image)
         
         st.session_state.news_input = extracted_text
