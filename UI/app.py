@@ -24,10 +24,16 @@ else:
 # Model path
 FAKE_NEWS_MODEL_PATH = "Balavasan/Fine_tuned-BERT"
 
+torch._dynamo.config.suppress_errors = True  # Optional safety net
+torch._dynamo.disable()  # Fully disable Dynamo compilation
+
+
+
+
 # Load tokenizer and model
 tokenizer = AutoTokenizer.from_pretrained(FAKE_NEWS_MODEL_PATH)
 model = AutoModelForSequenceClassification.from_pretrained(FAKE_NEWS_MODEL_PATH)
-
+model = model.to("cpu")
 # Load KeyBERT model safely with SentenceTransformer
 try:
     embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
