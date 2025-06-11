@@ -32,8 +32,9 @@ torch._dynamo.disable()  # Fully disable Dynamo compilation
 
 # Load tokenizer and model
 tokenizer = AutoTokenizer.from_pretrained(FAKE_NEWS_MODEL_PATH)
-model = AutoModelForSequenceClassification.from_pretrained(FAKE_NEWS_MODEL_PATH)
-model = model.to("cpu")
+model = AutoModelForSequenceClassification.from_pretrained(FAKE_NEWS_MODEL_PATH, device_map=None)
+model = model.cpu()
+
 # Load KeyBERT model safely with SentenceTransformer
 try:
     embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
