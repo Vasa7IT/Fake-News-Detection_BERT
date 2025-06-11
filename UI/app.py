@@ -29,8 +29,14 @@ tokenizer = AutoTokenizer.from_pretrained(FAKE_NEWS_MODEL_PATH)
 model = AutoModelForSequenceClassification.from_pretrained(FAKE_NEWS_MODEL_PATH)
 
 # Load KeyBERT model safely with SentenceTransformer
-embedding_model = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')
-kw_model = KeyBERT(model=embedding_model)
+try:
+    embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+    kw_model = KeyBERT(model=embedding_model)
+except NotImplementedError:
+    st.error("⚠️ SentenceTransformer failed to load due to cloud limitations. Keyword extraction won't work.")
+    kw_model = None
+# embedding_model = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')
+# kw_model = KeyBERT(model=embedding_model)
 
 # App UI
 st.title("📰 Fake News Detector with Source Suggestion")
@@ -55,8 +61,11 @@ if uploaded_file is not None and st.button("Extract Text from Image"):
 user_input = st.text_area("Enter news text:", key="news_input", value=st.session_state.news_input)
 
 def get_clean_query(text):
+    if not kw_model:
+        return ""
     keywords = kw_model.extract_keywords(text, stop_words='english', top_n=5)
     return " ".join([kw[0] for kw in keywords])
+
 
 def search_news_api(query, api_key):
     import requests
